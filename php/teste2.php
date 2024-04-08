@@ -11,7 +11,7 @@ use Chuva\Php\WebScrapping\Entity\Person;
 class Scrapper {
 
   /**
-   * Scrapes paper information from the HTML and returns an array with the data.
+   * Loads paper information from the HTML and returns the array with the data.
    */
   public function scrap(\DOMDocument $dom): array {
     $html = file_get_contents("https://proceedings.science/papers-published");
@@ -19,41 +19,28 @@ class Scrapper {
     $documento = new \DOMDocument();
     $documento->loadHTML($html);
 
-    // Obtém todos os elementos <article> da página
-    $articles = $documento->getElementsByTagName("article");
-    $papers = [];
+    // Obtém todos os elementos <a> (links) da página
+    $domNodelist = $documento->getElementsByTagName("a");
+    $linklist = [];
+    foreach ($domNodelist as $link) {
+      $href = $link->getAttribute("href");
+      if (!empty($href)) {
+          $linklist[] = $href;
 
-    foreach ($articles as $article) {
-      $paper = new Paper();
-
-      // Extrai o título do artigo
-      $titleElement = $article->getElementsByTagName("h2")->item(0);
-      $paper->setTitle($titleElement->nodeValue);
-
-      // Extrai o nome do autor
-      $authorElement = $article->getElementsByTagName("span")->item(0);
-      $paper->setAuthor($authorElement->nodeValue);
-
-      // Extrai o resumo do artigo
-      $abstractElement = $article->getElementsByTagName("p")->item(0);
-      $paper->setAbstract($abstractElement->nodeValue);
-
-      // Extrai o link para o artigo completo
-      $linkElement = $article->getElementsByTagName("a")->item(0);
-      $paper->setLink($linkElement->getAttribute("href"));
-
-      $papers[] = $paper;
-    }
-    
-    // Salva os dados em um arquivo CSV
-    $arquivo = fopen('papers.csv', 'w');
-    foreach ($papers as $paper) {
-        fputcsv($arquivo, [$paper->getTitle(), $paper->getAuthor(), $paper->getAbstract(), $paper->getLink()]);
-    }
-    fclose($arquivo);
-
-    return $papers;
-  }
+          $arquivo = fopen('file.csv', 'w');
+// Escrever conteúdo
+foreach ($linklist as $link) {
+    fputcsv($arquivo, [$link]);
 }
-
+fclose($arquivo);
+      }
+  }
+  
+  fclose($arquivo);
+    
+  return $linklist;
+        
+      
+}
+  }
 
