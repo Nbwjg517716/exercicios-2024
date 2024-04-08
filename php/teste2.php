@@ -11,17 +11,27 @@ use Chuva\Php\WebScrapping\Entity\Person;
 class Scrapper {
 
   /**
-   * Loads paper information from the HTML and returns an array with the data.
+   * Loads paper information from the HTML and saves it to an Excel table.
    */
-  public function scrap(): array {
+  public function scrapAndSaveToExcel(): void {
+    // Carrega o conteúdo HTML da página desejada
     $html = file_get_contents("https://proceedings.science/papers-published");
-    libxml_use_internal_errors(true);
+    
+    // Verifica se o HTML foi carregado corretamente
+    if ($html === false) {
+        echo "Erro ao acessar a página.";
+        exit;
+    }
+    
+    // Cria um objeto DOMDocument e carrega o HTML
     $documento = new \DOMDocument();
     $documento->loadHTML($html);
 
+    // Obtém todos os elementos <a> (links) da página
     $domNodelist = $documento->getElementsByTagName("a");
     $linklist = [];
     
+    // Itera sobre os links e extrai seus atributos href
     foreach ($domNodelist as $link) {
         $href = $link->getAttribute("href");
         if (!empty($href)) {
@@ -29,45 +39,34 @@ class Scrapper {
         }
     }
     
-    $this->writeLinksToCSV($linklist);
+    // Escreve os links em uma tabela Excel
+    $this->writeLinksToExcel($linklist);
 
-    return [ 
-      new Paper(
-        123,
-        'The Nobel Prize in Physiology or Medicine 2023',
-        'Nobel Prize',
-        [
-          new Person('Katalin Karikó', 'Szeged University'),
-          new Person('Drew Weissman', 'University of Pennsylvania'),
-        ]
-      ),
-    ];
+    echo "Os links foram salvos em uma tabela Excel com sucesso.";
   }
 
   /**
-   * Writes the links to a CSV file.
+   * Writes the links to an Excel table.
    */
-  private function writeLinksToCSV(array $links): void {
-    $arquivo = fopen('file.csv', 'w');
-    
-    // Verifica se o arquivo CSV foi aberto corretamente
-    if ($arquivo === false) {
-        echo "Erro ao abrir o arquivo CSV.";
-        exit;
-    }
-    
-    // Escreve os links no arquivo CSV
+  private function writeLinksToExcel(array $links): void {
+    // Cria um novo objeto PHPExcel
+    $objPHPExcel = new \PHPExcel();
+
+    // Define as colunas
+    $objPHPExcel->getActiveSheet()->setCellValue('A1', 'Links');
+    $row = 2;
+
+    // Escreve os links nas células
     foreach ($links as $link) {
-        if (fputcsv($arquivo, [$link]) === false) {
-            echo "Erro ao escrever no arquivo CSV.";
-            fclose($arquivo);
-            exit;
-        }
+        $objPHPExcel->getActiveSheet()->setCellValue('A' . $row, $link);
+        $row++;
     }
-    
-    // Fecha o arquivo CSV
-    fclose($arquivo);
-    
-    echo "Os links foram escritos no arquivo CSV com sucesso.";
+
+    // Cria um escritor para salvar o arquivo Excel
+    $objWriter = \PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
+
+    // Salva o arquivo Excel
+    $objWriter->save('links.xlsx');
   }
 }
+
